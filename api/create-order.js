@@ -46,17 +46,20 @@ export default async function handler(req, res) {
     const orderData = await orderResponse.json();
 
     // Step 2: Create a Payment Link for that Order
-    const linkResponse = await fetch("https://api.razorpay.com/v1/payment_links", {
-        method: "POST",
-        headers: {
-            "Content-Type": "application/json",
-            "Authorization": `Basic ${getAuthToken()}`,
-        },
-        body: JSON.stringify({
-            description: "Payment for Print Service",
-            order_id: orderData.id
-        })
-    });
+   const linkResponse = await fetch("https://api.razorpay.com/v1/payment_links", {
+    method: "POST",
+    headers: {
+        "Content-Type": "application/json",
+        "Authorization": `Basic ${getAuthToken()}`,
+    },
+    // The body MUST only contain fields allowed with an order_id
+    body: JSON.stringify({
+        description: "Payment for Print Service",
+        order_id: orderData.id 
+        // 'amount' and 'currency' have been removed
+    })
+});
+
 
     if (!linkResponse.ok) {
         const errorData = await linkResponse.json();
