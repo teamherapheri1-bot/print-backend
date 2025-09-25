@@ -8,6 +8,11 @@ const getAuthToken = () => {
 };
 
 export default async function handler(req, res) {
+  // --- ADDED FOR DEBUGGING ---
+  console.log("Key ID Loaded:", process.env.RAZORPAY_KEY_ID || 'UNDEFINED');
+  console.log("Key Secret Loaded:", process.env.RAZORPAY_KEY_SECRET ? process.env.RAZORPAY_KEY_SECRET.substring(0, 4) + '...' : 'UNDEFINED');
+  // ---------------------------
+
   if (req.method !== "POST") {
     return res.status(405).json({ error: "Method not allowed" });
   }
@@ -41,15 +46,17 @@ export default async function handler(req, res) {
     const orderData = await orderResponse.json();
 
     // Step 2: Create a Payment Link for that Order
-const linkResponse = await fetch("https://api.razorpay.com/v1/payment_links", {
-    method: "POST",
-    headers: { /* ... headers ... */ },
-    body: JSON.stringify({
-        // FIXED: Removed amount and currency as they are inherited from the order_id
-        description: "Payment for Print Service",
-        order_id: orderData.id
-    })
-});
+    const linkResponse = await fetch("https://api.razorpay.com/v1/payment_links", {
+        method: "POST",
+        headers: {
+            "Content-Type": "application/json",
+            "Authorization": `Basic ${getAuthToken()}`,
+        },
+        body: JSON.stringify({
+            description: "Payment for Print Service",
+            order_id: orderData.id
+        })
+    });
 
     if (!linkResponse.ok) {
         const errorData = await linkResponse.json();
