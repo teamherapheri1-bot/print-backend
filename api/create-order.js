@@ -8,19 +8,12 @@ const getAuthToken = () => {
 };
 
 export default async function handler(req, res) {
-  // --- ADDED FOR DEBUGGING ---
-  console.log("Key ID Loaded:", process.env.RAZORPAY_KEY_ID || 'UNDEFINED');
-  console.log("Key Secret Loaded:", process.env.RAZORPAY_KEY_SECRET ? process.env.RAZORPAY_KEY_SECRET.substring(0, 4) + '...' : 'UNDEFINED');
-  // ---------------------------
-
   if (req.method !== "POST") {
     return res.status(405).json({ error: "Method not allowed" });
   }
 
   try {
     const { amount, currency } = req.body;
-
-    // Razorpay requires the amount in the smallest currency unit (e.g., paise)
     const amountInPaise = Math.round(amount * 100);
 
     // Step 1: Create an Order with Razorpay
@@ -33,7 +26,7 @@ export default async function handler(req, res) {
       body: JSON.stringify({
         amount: amountInPaise,
         currency: currency || "INR",
-        receipt: `receipt_order_${Date.now()}`, // A unique receipt ID
+        receipt: `receipt_order_${Date.now()}`,
       }),
     });
 
@@ -45,25 +38,30 @@ export default async function handler(req, res) {
 
     const orderData = await orderResponse.json();
 
-    // Step 2: Create a Payment Link for that Order
-   const linkResponse = await fetch("https://api.razorpay.com/v1/payment_links", {
-    method: "POST",
-    headers: {
-        "Content-Type": "application/json",
-        "Authorization": `Basic ${getAuthToken()}`,
-    },
-    // The body MUST only contain fields allowed with an order_id
-    body: JSON.stringify({
-        description: "Payment for Print Service",
-        order_id: orderData.id 
-        // 'amount' and 'currency' have been removed
-    })
-});
+    // --- NEW UNIQUE LOG MESSAGE ---
+    console.log(">>> V2.0: Preparing to create payment link with ONLY order_id. Body will be:", {
+      description: "Payment for Print Service",
+      order_id: orderData.id
+    });
+    // ----------------------------
 
+    // Step 2: Create a Payment Link for that Order
+    const linkResponse = await fetch("https://api.razorpay.com/v1/payment_links", {
+        method: "POST",
+        headers: {
+            "Content-Type": "application/json",
+            "Authorization": `Basic ${getAuthToken()}`,
+        },
+        body: JSON.stringify({
+            description: "Payment for Print Service",
+            order_id: orderData.id
+        })
+    });
 
     if (!linkResponse.ok) {
         const errorData = await linkResponse.json();
-        console.error("Razorpay Link Error:", errorData);
+        // This is the error you are seeing
+        console.error("Razorpay Link Error:", errorData); 
         return res.status(linkResponse.status).json({ error: "Failed to create payment link", details: errorData });
     }
 
